@@ -2,16 +2,20 @@
 
 A decentralized identity vault built with Next.js, featuring blockchain technology, ECDSA cryptography, and Zero-Knowledge Proofs.
 
-## íº€ Quick Start
+## ï¿½ï¿½ï¿½ Quick Start
 
 \`\`\`bash
+
 # Install dependencies
+
 bun install
 
 # Run development server
+
 bun run dev
 
 # Open http://localhost:3000
+
 \`\`\`
 
 ## âœ¨ Features
@@ -22,7 +26,7 @@ bun run dev
 - **Tamper Detection**: Instant detection of modifications
 - **Smart Contract**: Deploy to Ethereum testnet
 
-## í´ How It Works
+## ï¿½ï¿½ï¿½ How It Works
 
 1. Generate ECDSA key pair
 2. Add credentials (hashed + signed)
@@ -30,7 +34,7 @@ bun run dev
 4. Verify with signatures
 5. Revoke granularly
 
-## í³¦ Tech Stack
+## ï¿½ï¿½ï¿½ Tech Stack
 
 - Next.js 16 + React 19
 - Tailwind CSS + Framer Motion
