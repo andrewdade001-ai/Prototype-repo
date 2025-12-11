@@ -10,7 +10,16 @@ export interface Block {
 export type BlockData =
   | string // Genesis block
   | { revocation: string } // Revocation block
-  | { attribute: string; hashed_value: string; signature: string }; // Credential block
+  | { attribute: string; hashed_value: string; signature: string } // Single credential (legacy)
+  | {
+      credentials: Array<{
+        attribute: string;
+        hashed_value: string;
+        signature: string;
+        value?: string;
+      }>;
+      userIdentifier?: string; // User identification (e.g., "Name (IC)")
+    }; // Multiple credentials block
 
 export class Blockchain {
   chain: Block[] = [];
