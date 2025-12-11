@@ -151,7 +151,7 @@ export default function Home() {
                 </div>
                 <Badge
                   variant="outline"
-                  className="text-xl py-2 px-6 border-purple-600"
+                  className="text-xl py-2 px-6 border-purple-600 text-white"
                 >
                   {c.label}
                 </Badge>
@@ -164,15 +164,10 @@ export default function Home() {
       {/* Footer */}
       <footer className="py-16 bg-purple-950/50 border-t border-purple-800">
         <div className="text-center">
-          <p className="text-2xl font-bold text-cyan-400">
-            Team [Your Team Name]
-          </p>
-          <p className="text-gray-400 mt-4">
-            Deadline: 12 Dec 2025 • Security Track • RM1500 Prize
-          </p>
+          <p className="text-2xl font-bold text-cyan-400">ENV push force</p>
           <div className="mt-8 flex justify-center gap-8">
             <a
-              href="https://github.com/yourusername/securevault"
+              href="https://github.com/pehyanbin/Prototype-repo"
               className="text-cyan-400 hover:text-cyan-300"
             >
               GitHub

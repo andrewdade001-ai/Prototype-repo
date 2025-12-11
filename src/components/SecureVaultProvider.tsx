@@ -22,6 +22,14 @@ interface SecureVaultContextType {
     value: string,
     doubleHash?: boolean
   ) => Promise<Block>;
+  addMultipleCredentials: (
+    credentials: Array<{
+      attribute: string;
+      value: string;
+      doubleHash?: boolean;
+    }>,
+    userIdentifier?: string
+  ) => Promise<Block>;
   revokeCredential: (index: number) => Block;
   verifyCredentialValue: (attribute: string, value: string) => Promise<boolean>;
   getCredentialBlock: (attribute: string) => Block | null;
@@ -68,15 +76,25 @@ export function SecureVaultProvider({
         // Rebuild credentials map
         const credMap = new Map<string, { index: number; attribute: string }>();
         parsed.forEach((block: Block, index: number) => {
-          if (
-            typeof block.data === "object" &&
-            "attribute" in block.data &&
-            !blockchain.isCredentialRevoked(index)
-          ) {
-            credMap.set(block.data.attribute, {
-              index,
-              attribute: block.data.attribute,
-            });
+          if (!blockchain.isCredentialRevoked(index)) {
+            if (typeof block.data === "object" && "attribute" in block.data) {
+              // Single credential (legacy)
+              credMap.set(block.data.attribute, {
+                index,
+                attribute: block.data.attribute,
+              });
+            } else if (
+              typeof block.data === "object" &&
+              "credentials" in block.data
+            ) {
+              // Multiple credentials in one block
+              block.data.credentials.forEach((cred) => {
+                credMap.set(cred.attribute, {
+                  index,
+                  attribute: cred.attribute,
+                });
+              });
+            }
           }
         });
         setCredentials(credMap);
@@ -119,19 +137,67 @@ export function SecureVaultProvider({
     return block;
   };
 
+  const addMultipleCredentials = async (
+    credentialsList: Array<{
+      attribute: string;
+      value: string;
+      doubleHash?: boolean;
+    }>,
+    userIdentifier?: string
+  ): Promise<Block> => {
+    if (!keyPair) throw new Error("Vault not initialized");
+
+    // Create credential data for all fields
+    const credentialsData = await Promise.all(
+      credentialsList.map(async ({ attribute, value, doubleHash = false }) => {
+        const credData = await createCredentialData(
+          attribute,
+          value,
+          keyPair.privateKey,
+          doubleHash
+        );
+        return { ...credData, value }; // Keep original value for display
+      })
+    );
+
+    // Create a block with multiple credentials and optional user identifier
+    const blockData: BlockData = {
+      credentials: credentialsData,
+      ...(userIdentifier && { userIdentifier }), // Add userIdentifier if provided
+    };
+    const block = blockchain.addBlock(blockData);
+
+    // Update credentials map
+    setCredentials((prev) => {
+      const newMap = new Map(prev);
+      credentialsList.forEach(({ attribute }) => {
+        newMap.set(attribute, { index: block.index, attribute });
+      });
+      return newMap;
+    });
+
+    saveToStorage();
+    return block;
+  };
+
   const revokeCredential = (index: number): Block => {
     const block = blockchain.revokeCredential(index);
 
-    // Update credentials map to remove revoked credential
+    // Update credentials map to remove revoked credential(s)
     setCredentials((prev) => {
       const newMap = new Map(prev);
       const revokedBlock = blockchain.getCredentialBlock(index);
-      if (
-        revokedBlock &&
-        typeof revokedBlock.data === "object" &&
-        "attribute" in revokedBlock.data
-      ) {
-        newMap.delete(revokedBlock.data.attribute);
+      if (revokedBlock && typeof revokedBlock.data === "object") {
+        // Handle single credential (legacy)
+        if ("attribute" in revokedBlock.data) {
+          newMap.delete(revokedBlock.data.attribute);
+        }
+        // Handle multiple credentials
+        else if ("credentials" in revokedBlock.data) {
+          revokedBlock.data.credentials.forEach((cred) => {
+            newMap.delete(cred.attribute);
+          });
+        }
       }
       return newMap;
     });
@@ -150,19 +216,29 @@ export function SecureVaultProvider({
     if (!credInfo) return false;
 
     const block = blockchain.getCredentialBlock(credInfo.index);
-    if (
-      !block ||
-      typeof block.data !== "object" ||
-      !("signature" in block.data)
-    ) {
+    if (!block || typeof block.data !== "object") {
       return false;
     }
 
-    return await verifyCredential(
-      keyPair.publicKey,
-      value,
-      block.data.signature
-    );
+    // Handle single credential block (legacy)
+    if ("signature" in block.data) {
+      return await verifyCredential(
+        keyPair.publicKey,
+        value,
+        block.data.signature
+      );
+    }
+
+    // Handle multiple credentials block
+    if ("credentials" in block.data) {
+      const cred = block.data.credentials.find(
+        (c) => c.attribute === attribute
+      );
+      if (!cred) return false;
+      return await verifyCredential(keyPair.publicKey, value, cred.signature);
+    }
+
+    return false;
   };
 
   const getCredentialBlock = (attribute: string): Block | null => {
@@ -200,6 +276,7 @@ export function SecureVaultProvider({
         initialized,
         initializeVault,
         addCredential,
+        addMultipleCredentials,
         revokeCredential,
         verifyCredentialValue,
         getCredentialBlock,

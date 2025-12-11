@@ -34,6 +34,9 @@ export function BlockchainViewer({ blocks, isValid }: BlockchainViewerProps) {
     if (typeof block.data === "object" && "revocation" in block.data) {
       return "REVOCATION";
     }
+    if (typeof block.data === "object" && "credentials" in block.data) {
+      return "USER INFO";
+    }
     if (typeof block.data === "object" && "attribute" in block.data) {
       return "CREDENTIAL";
     }
@@ -172,6 +175,62 @@ export function BlockchainViewer({ blocks, isValid }: BlockchainViewerProps) {
                       <span className="text-gray-300">
                         {block.data.revocation}
                       </span>
+                    </div>
+                  ) : typeof block.data === "object" &&
+                    "credentials" in block.data ? (
+                    <div className="space-y-4">
+                      {block.data.userIdentifier && (
+                        <div className="pb-3 border-b border-purple-700">
+                          <span className="text-gray-400">User: </span>
+                          <span className="text-cyan-300 font-bold text-lg">
+                            {block.data.userIdentifier}
+                          </span>
+                        </div>
+                      )}
+                      <div className="text-cyan-300 font-bold text-lg mb-3">
+                        User Information ({block.data.credentials.length}{" "}
+                        fields)
+                      </div>
+                      {block.data.credentials.map((cred, idx) => (
+                        <div
+                          key={idx}
+                          className="p-3 bg-purple-950/30 rounded border border-purple-800/50 space-y-2"
+                        >
+                          <div>
+                            <span className="text-gray-400">Field: </span>
+                            <span className="text-cyan-300 font-bold uppercase">
+                              {cred.attribute}
+                            </span>
+                          </div>
+                          {cred.value && (
+                            <div>
+                              <span className="text-gray-400">
+                                Original Value:{" "}
+                              </span>
+                              <span className="text-green-400">
+                                {cred.value}
+                              </span>
+                            </div>
+                          )}
+                          <div>
+                            <span className="text-gray-400">
+                              Hashed Value:{" "}
+                            </span>
+                            <p className="text-purple-300 font-mono text-xs break-all mt-1">
+                              {cred.hashed_value}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-gray-400">Signature: </span>
+                            <p className="text-pink-300 font-mono text-xs break-all mt-1">
+                              {cred.signature.substring(0, 32)}...
+                              {cred.signature.substring(
+                                cred.signature.length - 32
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   ) : typeof block.data === "object" &&
                     "attribute" in block.data ? (
